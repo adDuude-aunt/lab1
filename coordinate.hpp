@@ -9,7 +9,7 @@ enum class Direction {
 class Coordinate {
     int x_;
     int y_;
-public:
+    public:
     Coordinate(int x, int y);
 
     int x() const;
