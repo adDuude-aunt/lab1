@@ -39,7 +39,7 @@ namespace warehouse {
         void InProgress();
         void Completed();
         void Cancelled();
-        void LowtStock();
+        void LowStock();
 
         bool isPending() const;
         bool isSetted() const;
