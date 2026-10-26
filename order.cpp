@@ -3,7 +3,7 @@
 namespace warehouse {
 
     Order::Order(int id, Coordinate shelf, int quantity)
-        : id_(id), shelf_(shelf), quantity_(quantity), status_(OrderStatus::Pending), RobotId_(-1) {
+        : id_(id), shelf_(shelf), quantity_(quantity), status_(OrderStatus::Pending), botId_(-1) {
         if (id < 0) {
             throw StateError("Order ID can`t be negative");
         }
@@ -13,8 +13,8 @@ namespace warehouse {
     }
 
     int Order::id() const {return id_;}
-    int Order::RobotId() const {return RobotId_;}
-    Coordinate Order::shelf() const {return shelf_;}
+    int Order::botId() const {return botId_;}
+    Coordinate Order::shelfPosition() const {return shelf_;}
     int Order::quantity() const {return quantity_;}
     OrderStatus Order::status() const {return status_;}
 
@@ -26,17 +26,17 @@ namespace warehouse {
         }
     }
 
-    void Order::assignToRobot(int botId) {
+    void Order::AttachedRobot(int botId) {
         requireStatus(OrderStatus::Pending);
-        if (robotId < 0) {
+        if (botId < 0) {
             throw StateError("Robot ID can`t be negative");
         }
-        RobotId_ = botId;
-        status_ = OrderStatus::Assigned;
+        botId_ = botId;
+        status_ = OrderStatus::Setted;
     }
 
     void Order::InProgress() {
-        requireStatus(OrderStatus::Assigned);
+        requireStatus(OrderStatus::Setted);
         status_ = OrderStatus::InProgress;
     }
 
@@ -60,7 +60,7 @@ namespace warehouse {
     }
 
     bool Order::isPending() const {return status_ == OrderStatus::Pending;}
-    bool Order::isAssigned() const {return status_ == OrderStatus::Assigned;}
+    bool Order::isSetted() const {return status_ == OrderStatus::Setted;}
     bool Order::isCompleted() const {return status_ == OrderStatus::Completed;}
     bool Order::isCancelled() const {return status_ == OrderStatus::Cancelled;}
 
