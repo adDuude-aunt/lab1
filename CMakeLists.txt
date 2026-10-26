@@ -11,6 +11,12 @@ FetchContent_MakeAvailable(googletest)
 add_executable(warehouse_tests
     testcoordinate.cpp
     coordinate.cpp
+    battery.cpp
+    testbattery.cpp
+    testcell.cpp
+    cell.cpp
+    bot.cpp
+    testbot.cpp
 )
 target_compile_features(warehouse_tests PRIVATE cxx_std_23)
 target_link_libraries(warehouse_tests PRIVATE GTest::gtest_main)
