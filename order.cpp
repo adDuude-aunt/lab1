@@ -52,7 +52,7 @@ namespace warehouse {
         status_ = OrderStatus::Cancelled;
     }
 
-    void Order::LowtStock() {
+    void Order::LowStock() {
         if (status_ != OrderStatus::Pending) {
             throw StateError("Can only mark low stock for pending orders");
         }
