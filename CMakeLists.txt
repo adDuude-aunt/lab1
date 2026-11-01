@@ -23,6 +23,8 @@ add_executable(warehouse_tests
     testmap.cpp
     moverules.cpp
     testmoverules.cpp
+    path.cpp
+    testpath.cpp
 )
 target_compile_features(warehouse_tests PRIVATE cxx_std_23)
 target_link_libraries(warehouse_tests PRIVATE GTest::gtest_main)
