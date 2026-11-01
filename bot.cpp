@@ -6,7 +6,7 @@ namespace warehouse {
         : id_(id), position_(position), battery_(maxBattery, maxBattery),
         capacity_(capacity), deliver_(0), isCharging_(false) {
         if (id < 0) {
-            throw StateError("Robot ID can`t be negative");
+            throw StatebotError("Robot ID can`t be negative");
         }
         if (capacity <= 0) {
             throw CapacityError("Robot capacity can`t be negative");
@@ -19,10 +19,10 @@ namespace warehouse {
 
     void Robot::moveTo(Coordinate newPos) {
         if (isCharging_) {
-            throw StateError("Can`t move when charging");
+            throw StatebotError("Can`t move when charging");
         }
         if (!able2move()) {
-            throw StateError("Not enough energy to move");
+            throw StatebotError("Not enough energy to move");
         }
         position_ = newPos;
         battery_.spend(moveCost());
@@ -36,7 +36,7 @@ namespace warehouse {
 
     void Robot::charge(int amount) {
         if (!isCharging_) {
-            throw StateError("Can only charge when charging flag is set");
+            throw StatebotError("Can only charge when charging flag is set");
         }
         battery_.charge(amount);
     }
