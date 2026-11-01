@@ -12,4 +12,14 @@ class MovementRules {
         static bool canUnload(const Robot& robot, const Cell& cell, int amount);
     };
 
+    Direction parse_direction(const std::string& s);
+    std::string direction_to_string(Direction d);
+
+    struct AdjacentShelf {
+    Direction dir;
+    Cell* cell;
+    Coordinate pos;
+    };
+
+    std::vector<AdjacentShelf> find_adjacent_shelves(Robot& robot, const WarehouseMap& map);
 }
