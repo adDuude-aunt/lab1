@@ -6,6 +6,7 @@
 #include "journal.hpp"
 #include <vector>
 #include <memory>
+#include <iostream>
 
 namespace warehouse {
 
@@ -53,5 +54,7 @@ private:
     Order* findOrder(int id);
     void collectStats();
 };
+
+int read_int(const std::string& prompt, int min_val, int max_val);
 
 }
