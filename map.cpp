@@ -2,13 +2,10 @@
 
 namespace warehouse {
 
-WarehouseMap::WarehouseMap(int width, int height): width_(width), height_(height),
+WarehouseMap::WarehouseMap(int width, int height): width_(width <= 0 ? throw Positionerror("Map dimensions must be positive") 
+    : width), height_(height <= 0 ? throw Positionerror("Map dimensions must be positive") : height),
       grid_(height, std::vector<Cell>(width, Cell(CellType::Empty))),
       pickupPos_(0, 0), chargingPos_(width - 1, height - 1) {
-    if (width <= 0 || height <= 0) {
-        throw Positionerror("Map dimensions can`t be negative");
-    }
-
     grid_[0][0] = Cell(CellType::Pickup);
     grid_[height - 1][width - 1] = Cell(CellType::C_Station);
 }
