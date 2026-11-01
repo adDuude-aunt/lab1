@@ -102,4 +102,24 @@ void Simulator::collectStats() {
     stats_.push_back(s);
 }
 
+
+int read_int(const std::string& prompt, int min_val, int max_val) {
+    int value;
+    while (true) {
+        std::cout << prompt;
+        if (!(std::cin >> value)) {
+            std::cin.clear();
+            std::cin.ignore(10000, '\n');
+            std::cout << "Введите целое число.\n";
+            continue;
+        }
+        if (value < min_val || value > max_val) {
+            std::cout << "Значение должно быть от " << min_val << " до " << max_val << ".\n";
+            continue;
+        }
+        std::cin.ignore(10000, '\n');
+        return value;
+    }
+}
+
 }
