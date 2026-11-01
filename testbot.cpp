@@ -15,7 +15,7 @@ TEST(botTest, Construction) {
 }
 
 TEST(botTest, Id) {
-    EXPECT_THROW(Robot(-67, {0, 0}, 17, 7), StateError);
+    EXPECT_THROW(Robot(-67, {0, 0}, 17, 7), StatebotError);
 }
 
 TEST(botTest, Capacity) {
@@ -76,13 +76,13 @@ TEST(RobotTest, MoveTo) {
 TEST(RobotTest, MoveCharging) {
     Robot r(67, {0, 0}, 17, 7);
     r.setCharging(true);
-    EXPECT_THROW(r.moveTo({1, 0}), StateError);
+    EXPECT_THROW(r.moveTo({1, 0}), StatebotError);
 }
 
 TEST(RobotTest, noEnergy) {
     Robot r(67, {0, 0}, 1, 7);
     r.load(1); // moveCost = 2
-    EXPECT_THROW(r.moveTo({1, 0}), StateError);
+    EXPECT_THROW(r.moveTo({1, 0}), StatebotError);
 }
 
 TEST(RobotTest, Charge) {
@@ -96,7 +96,7 @@ TEST(RobotTest, Charge) {
 
 TEST(RobotTest, ChargeOutOfPlace) {
     Robot r(67, {0, 0}, 17, 7);
-    EXPECT_THROW(r.charge(5), StateError);
+    EXPECT_THROW(r.charge(5), StatebotError);
 }
 
 TEST(RobotTest, Carry) {
