@@ -23,7 +23,7 @@ add_executable(warehouse_tests
     testmap.cpp
     moverules.cpp
     testmoverules.cpp
-    path.cpp
+    pathes.cpp
     testpath.cpp
 )
 target_compile_features(warehouse_tests PRIVATE cxx_std_23)
