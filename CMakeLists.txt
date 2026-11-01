@@ -25,6 +25,10 @@ add_executable(warehouse_tests
     testmoverules.cpp
     pathes.cpp
     testpath.cpp
+    journal.cpp
+    testjournal.cpp
+    dispatcher.cpp
+    testdispatcher.cpp
 )
 target_compile_features(warehouse_tests PRIVATE cxx_std_23)
 target_link_libraries(warehouse_tests PRIVATE GTest::gtest_main)
