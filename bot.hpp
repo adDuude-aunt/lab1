@@ -13,7 +13,7 @@ namespace warehouse {
         using DomainError::DomainError;
     };
 
-    struct StateError : DomainError {
+    struct StatebotError : DomainError {
         using DomainError::DomainError;
     };
 
