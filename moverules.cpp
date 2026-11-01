@@ -24,4 +24,36 @@ namespace warehouse {
         if (robot.deliver() < amount) return false;
         return true;
     }
+    Direction parse_direction(const std::string& s) {
+    if (s == "up") return Direction::Up;
+    if (s == "down") return Direction::Down;
+    if (s == "left") return Direction::Left;
+    if (s == "right") return Direction::Right;
+    throw std::invalid_argument("Неверное направление");
+}
+
+std::string direction_to_string(Direction d) {
+    switch (d) {
+        case Direction::Up:    return "up";
+        case Direction::Down:  return "down";
+        case Direction::Left:  return "left";
+        case Direction::Right: return "right";
+    }
+    return "?";
+}
+
+std::vector<AdjacentShelf> find_adjacent_shelves(Robot& robot, const WarehouseMap& map) {
+    std::vector<AdjacentShelf> result;
+    Direction dirs[] = {Direction::Up, Direction::Down, Direction::Left, Direction::Right};
+    for (auto d : dirs) {
+        Coordinate neighbor = robot.position().step(d);
+        if (map.isValid(neighbor)) {
+            Cell& cell = const_cast<Cell&>(map.cellAt(neighbor));
+            if (cell.isShelf() && cell.stock() > 0) {
+                result.push_back({d, &cell, neighbor});
+            }
+        }
+    }
+    return result;
+}
 }
