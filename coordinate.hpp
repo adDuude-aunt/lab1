@@ -10,6 +10,7 @@ class Coordinate {
     int x_;
     int y_;
     public:
+    Coordinate() : x_(0), y_(0) {} 
     Coordinate(int x, int y);
 
     int x() const;
