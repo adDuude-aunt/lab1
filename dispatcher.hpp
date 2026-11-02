@@ -12,25 +12,26 @@ namespace warehouse {
 
 struct RobotTask {
     int robotId;
+    int orderId;
+    Coordinate shelfPos;
     std::vector<Coordinate> path;
     int pathIndex;
-    int orderId;
+    int loadAmount;
     enum class Phase { ToShelf, Loading, ToPickup, Unloading, ToCharge, Idle };
     Phase phase;
-    int loadAmount;
 };
 
 class Dispatcher {
     std::map<int, RobotTask> tasks_;
-    int chargeThreshold_ = 5;
-    int chargeAmount_ = 3;
+    int chargeThreshold_ = 10;
+    int chargeAmount_ = 5;
 
 public:
-    void assignOrders(std::vector<Order>& orders, std::vector<Robot>& robots, 
+    void assignOrders(std::vector<Order>& orders, std::vector<Robot>& robots,
                       const WarehouseMap& map, EventJournal& journal, int tick);
-    void executeTick(std::vector<Robot>& robots, std::vector<Order>& orders, 
+    void executeTick(std::vector<Robot>& robots, std::vector<Order>& orders,
                      WarehouseMap& map, EventJournal& journal, int tick);
-    void sendToCharge(std::vector<Robot>& robots, const WarehouseMap& map, 
+    void sendToCharge(std::vector<Robot>& robots, const WarehouseMap& map,
                       EventJournal& journal, int tick);
 };
 

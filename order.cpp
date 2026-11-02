@@ -2,8 +2,9 @@
 
 namespace warehouse {
 
-Order::Order(int id, int quantity)
-    : id_(id), quantity_(quantity), status_(OrderStatus::Pending), botId_(-1) {
+Order::Order(int id, Coordinate shelfPos, int quantity)
+    : id_(id), shelfPos_(shelfPos), quantity_(quantity),
+      status_(OrderStatus::Pending), botId_(-1) {
     if (id < 0) {
         throw StateError("Order ID can`t be negative");
     }
@@ -13,9 +14,10 @@ Order::Order(int id, int quantity)
 }
 
 int Order::id() const { return id_; }
-int Order::botId() const { return botId_; }
+Coordinate Order::shelfPosition() const { return shelfPos_; }
 int Order::quantity() const { return quantity_; }
 OrderStatus Order::status() const { return status_; }
+int Order::botId() const { return botId_; }
 
 void Order::requireStatus(OrderStatus required) const {
     if (status_ != required) {

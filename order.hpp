@@ -1,4 +1,5 @@
 #pragma once
+#include "coordinate.hpp"
 #include "domainerror.hpp"
 
 namespace warehouse {
@@ -18,6 +19,7 @@ struct QuantityError : DomainError {
 class Order {
 private:
     int id_;
+    Coordinate shelfPos_;
     int quantity_;
     OrderStatus status_;
     int botId_;
@@ -25,12 +27,13 @@ private:
     void requireStatus(OrderStatus required) const;
 
 public:
-    Order(int id, int quantity);
+    Order(int id, Coordinate shelfPos, int quantity);
 
     int id() const;
-    int botId() const;
+    Coordinate shelfPosition() const;
     int quantity() const;
     OrderStatus status() const;
+    int botId() const;
 
     void AttachedRobot(int botId);
     void InProgress();
