@@ -17,7 +17,7 @@ struct RobotTask {
     std::vector<Coordinate> path;
     int pathIndex;
     int loadAmount;
-    enum class Phase { ToShelf, Loading, ToPickup, Unloading, ToCharge, Idle };
+    enum class Phase { ToShelf, Loading, ToPickup, Unloading, ToCharge, Idle, leaving };
     Phase phase;
     Phase resumePhase = Phase::Idle;
 };

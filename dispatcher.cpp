@@ -32,7 +32,7 @@ static int calculateRequiredEnergy( const Coordinate& robotPos, const Coordinate
     int loadEnergy = quantity;
     int unloadEnergy = quantity;
     
-    return energyToShelf + loadEnergy + energyToPickup + unloadEnergy;
+    return energyToShelf + loadEnergy + energyToPickup + unloadEnergy + 1;
 }
 
 
@@ -300,14 +300,15 @@ void Dispatcher::executeTick(std::vector<Robot>& robots, std::vector<Order>& ord
                             }
                         }
                     
-                    task.phase = RobotTask::Phase::Idle;
+                    task.phase = RobotTask::Phase::leaving;
                     } else {
                         task.resumePhase = task.phase;
                         task.phase = RobotTask::Phase::ToCharge;
                         std::vector<Coordinate> obstacles;
+                        for (const auto& r : robots) if (r.id() != robot.id()) obstacles.push_back(r.position());
                         task.path = Pathfinding::findPath(
                             robot.position(), map.chargingPosition(), map, obstacles);
-                        task.pathIndex = 0;
+                        task.pathIndex = (task.path.size() > 1) ? 1 : 0;
                         journal.log(tick, "Charge",
                             "Robot " + std::to_string(robot.id()) +
                             " going to charge (not enough energy to unload)");
@@ -328,6 +329,45 @@ void Dispatcher::executeTick(std::vector<Robot>& robots, std::vector<Order>& ord
                     task.pathIndex = (task.path.size() > 1) ? 1 : 0;
                 }
                 break;
+
+            case RobotTask::Phase::leaving: {
+                if (robot.position() != map.pickupPosition()) {
+                    task.phase = RobotTask::Phase::Idle;
+                    break;
+                }
+
+                Coordinate target = robot.position();
+                bool found = false;
+                Direction dirs[] = {Direction::Up, Direction::Down, Direction::Left, Direction::Right};
+                for (auto d : dirs) {
+                    Coordinate neighbor = robot.position().step(d);
+                    if (map.isValid(neighbor) && map.isPassable(neighbor)) {
+                        bool occupied = false;
+                        for (const auto& r : robots) {
+                            if (r.id() != robot.id() && r.position() == neighbor) {
+                                occupied = true;
+                                break;
+                            }
+                        }
+                        if (!occupied) {
+                            target = neighbor;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (found) {
+                    if (MovementRules::canMove(robot, target, map, robots)) {
+                        robot.moveTo(target);
+                        journal.log(tick, "Move",
+                            "Robot " + std::to_string(robot.id()) +
+                            " left pickup to " + std::to_string(target.x()) + "," + std::to_string(target.y()));
+                        task.phase = RobotTask::Phase::Idle;
+                    }
+                }
+                break;
+            }
 
             case RobotTask::Phase::ToCharge:
                 if (!tryMove()) {
