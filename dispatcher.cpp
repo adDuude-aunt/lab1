@@ -75,6 +75,7 @@ static int calculateRequiredEnergy( const Coordinate& robotPos, const Coordinate
 
         int bestRobotId = -1;
         int bestDist = std::numeric_limits<int>::max();
+        bool bestViaCharge = false;
         
         for (const auto& robot : robots) {  
             if (tasks_.count(robot.id()) || robot.isCharging()) continue;
@@ -83,29 +84,51 @@ static int calculateRequiredEnergy( const Coordinate& robotPos, const Coordinate
             std::vector<Coordinate> obstacles;
             for (const auto& r : robots) if (r.id() != robot.id()) obstacles.push_back(r.position());
             
-            auto path = findPathToShelf(robot.position(), order.shelfPosition(), obstacles);
-            int dist = path.empty() ? -1 : static_cast<int>(path.size()) - 1;
+            auto pathDirect = findPathToShelf(robot.position(), order.shelfPosition(), obstacles);
+            int requiredFromCurrent = -1;
+            if (!pathDirect.empty()) {
+                requiredFromCurrent = calculateRequiredEnergy(
+                    robot.position(), order.shelfPosition(),
+                    map.pickupPosition(), order.quantity(), map, obstacles);
+            }
+            bool canDirect = (requiredFromCurrent >= 0 && robot.battery().level() >= requiredFromCurrent);
 
-           if (dist < 0) continue;
+            int effectiveDist = -1;
+            bool viaCharge = false;
 
-            int requiredEnergy = calculateRequiredEnergy(
-                robot.position(), order.shelfPosition(),
-                map.pickupPosition(), order.quantity(),
-                map, obstacles
-            );
-            if (requiredEnergy < 0) continue;
-            if (robot.battery().level() < requiredEnergy) {
+            if (canDirect) {
+                effectiveDist = static_cast<int>(pathDirect.size()) - 1;
+            } else {
+                auto pathToCharge = Pathfinding::findPath(robot.position(), map.chargingPosition(), map, obstacles);
+                if (!pathToCharge.empty()) {
+                    int stepsToCharge = static_cast<int>(pathToCharge.size()) - 1;
+                    int energyToReachCharge = stepsToCharge * robot.moveCost();
+                    if (robot.battery().level() >= energyToReachCharge) {
+                        int requiredFromCharge = calculateRequiredEnergy(
+                            map.chargingPosition(), order.shelfPosition(),
+                            map.pickupPosition(), order.quantity(), map, obstacles);
+                        if (requiredFromCharge >= 0 && robot.battery().maxLevel() >= requiredFromCharge) {
+                            effectiveDist = 1000 + stepsToCharge;
+                            viaCharge = true;
+                        }
+                    }
+                }
+            }
+
+            if (effectiveDist < 0) {
                 journal.log(tick, "Charge",
                     "Robot " + std::to_string(robot.id()) +
-                    " needs " + std::to_string(requiredEnergy) +
-                    " energy for order " + std::to_string(order.id()) +
-                    " but has " + std::to_string(robot.battery().level()));
+                    " cannot complete order " + std::to_string(order.id()) +
+                    " (direct needs " + std::to_string(requiredFromCurrent) +
+                    ", has " + std::to_string(robot.battery().level()) +
+                    ", max " + std::to_string(robot.battery().maxLevel()) + ")");
                 continue;
             }
 
-            if (dist < bestDist) {
-                bestDist = dist;
+            if (effectiveDist < bestDist) {
+                bestDist = effectiveDist;
                 bestRobotId = robot.id();
+                bestViaCharge = viaCharge;
             }
         }
 
