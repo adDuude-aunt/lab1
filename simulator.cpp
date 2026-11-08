@@ -17,9 +17,24 @@ void Simulator::tick() {
 int Simulator::currentTick() const { return currentTick_; }
 
 void Simulator::createOrder(Coordinate shelfPos, int quantity) {
+    if (!map_.isValid(shelfPos)) {
+        throw DomainError("Invalid coordinates for order");
+    }
+    const Cell& cell = map_.cellAt(shelfPos);
+    if (!cell.isShelf()) {
+        throw DomainError("Orders can only be created for shelves");
+    }
+    for (const auto& robot : robots_) {
+        if (robot.position() == shelfPos) {
+            throw DomainError("Cannot create order on a cell occupied by a robot");
+        }
+    }
     Order order(nextOrderId_++, shelfPos, quantity);
     orders_.push_back(order);
-    journal_.log(currentTick_, "Order", "Created order " + std::to_string(order.id()));
+    journal_.log(currentTick_, "Order", 
+        "Created order " + std::to_string(order.id()) + 
+        " at (" + std::to_string(shelfPos.x()) + "," + std::to_string(shelfPos.y()) + ")" +
+        " qty=" + std::to_string(quantity));
 }
 
 void Simulator::assignOrderToRobot(int orderId, int robotId) {
@@ -28,10 +43,10 @@ void Simulator::assignOrderToRobot(int orderId, int robotId) {
     if (order->status() != OrderStatus::Pending) throw DomainError("Order is not pending");
     Robot* robot = findRobot(robotId);
     if (!robot) throw DomainError("Robot not found");
-    
     order->AttachedRobot(robotId);
     order->InProgress();
-    journal_.log(currentTick_, "Assign", "Order " + std::to_string(orderId) + " -> Robot " + std::to_string(robotId));
+    dispatcher_.assignTask(robotId, orderId, order->shelfPosition(), order->quantity(), 
+        map_, robots_, journal_, currentTick_);
 }
 
 void Simulator::moveRobot(int robotId, Direction dir) {

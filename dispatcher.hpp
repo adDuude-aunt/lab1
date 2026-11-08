@@ -19,9 +19,11 @@ struct RobotTask {
     int loadAmount;
     enum class Phase { ToShelf, Loading, ToPickup, Unloading, ToCharge, Idle };
     Phase phase;
+    Phase resumePhase = Phase::Idle;
 };
 
 class Dispatcher {
+private:
     std::map<int, RobotTask> tasks_;
     int chargeThreshold_ = 10;
     int chargeAmount_ = 5;
@@ -33,6 +35,9 @@ public:
                      WarehouseMap& map, EventJournal& journal, int tick);
     void sendToCharge(std::vector<Robot>& robots, const WarehouseMap& map,
                       EventJournal& journal, int tick);
+    void assignTask(int robotId, int orderId, Coordinate shelfPos, int quantity, 
+                          const WarehouseMap& map, const std::vector<Robot>& robots, 
+                          EventJournal& journal, int tick);                  
 };
 
 }

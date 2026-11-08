@@ -7,7 +7,7 @@ TEST(DispatcherTest, AssignOrder) {
     WarehouseMap map(10, 10);
     map.setCell({3, 3}, Cell(CellType::Shelf, 50));
     std::vector<Robot> robots;
-    robots.emplace_back(1, Coordinate{1, 1}, 20, 10);
+    robots.emplace_back(1, Coordinate{1, 1}, 100, 10);
     std::vector<Order> orders;
     orders.emplace_back(1, Coordinate{3, 3}, 5);
     EventJournal journal;
