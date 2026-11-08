@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(WarehouseSimulator LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 include(CTest)
 include(FetchContent)
 FetchContent_Declare(googletest
@@ -8,29 +9,43 @@ FetchContent_Declare(googletest
     GIT_TAG v1.17.0
 )
 FetchContent_MakeAvailable(googletest)
-add_executable(warehouse_tests
-    testcoordinate.cpp
+
+# Библиотека домена
+add_library(warehouse_domain
     coordinate.cpp
     battery.cpp
+    cell.cpp
+    map.cpp
+    bot.cpp
+    order.cpp
+    moverules.cpp
+    pathes.cpp
+    journal.cpp
+    dispatcher.cpp
+    simulator.cpp
+    graphs.cpp
+)
+target_compile_features(warehouse_domain PUBLIC cxx_std_23)
+
+# Тесты
+add_executable(warehouse_tests
+    testcoordinate.cpp
     testbattery.cpp
     testcell.cpp
-    cell.cpp
-    bot.cpp
-    testbot.cpp
-    order.cpp
-    testorder.cpp
-    map.cpp
     testmap.cpp
-    moverules.cpp
+    testbot.cpp
+    testorder.cpp
     testmoverules.cpp
-    pathes.cpp
     testpath.cpp
-    journal.cpp
     testjournal.cpp
-    dispatcher.cpp
     testdispatcher.cpp
+    testsimulator.cpp
+    testgraphs.cpp
 )
-target_compile_features(warehouse_tests PRIVATE cxx_std_23)
-target_link_libraries(warehouse_tests PRIVATE GTest::gtest_main)
+target_link_libraries(warehouse_tests PRIVATE warehouse_domain GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(warehouse_tests DISCOVERY_MODE PRE_TEST)
+
+# Основное приложение
+add_executable(warehouse_sim main.cpp)
+target_link_libraries(warehouse_sim PRIVATE warehouse_domain)

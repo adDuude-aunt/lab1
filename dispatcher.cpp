@@ -76,6 +76,7 @@ static int calculateRequiredEnergy( const Coordinate& robotPos, const Coordinate
         int bestRobotId = -1;
         int bestDist = std::numeric_limits<int>::max();
         bool bestViaCharge = false;
+        bool bestChargeBeforeShelf = false;
         
         for (const auto& robot : robots) {  
             if (tasks_.count(robot.id()) || robot.isCharging()) continue;
@@ -85,50 +86,70 @@ static int calculateRequiredEnergy( const Coordinate& robotPos, const Coordinate
             for (const auto& r : robots) if (r.id() != robot.id()) obstacles.push_back(r.position());
             
             auto pathDirect = findPathToShelf(robot.position(), order.shelfPosition(), obstacles);
-            int requiredFromCurrent = -1;
-            if (!pathDirect.empty()) {
-                requiredFromCurrent = calculateRequiredEnergy(
-                    robot.position(), order.shelfPosition(),
-                    map.pickupPosition(), order.quantity(), map, obstacles);
+            if (pathDirect.empty()) {
+                continue;
             }
+            int dist = static_cast<int>(pathDirect.size()) - 1;
+            int requiredFromCurrent = calculateRequiredEnergy(
+                robot.position(), order.shelfPosition(),
+                map.pickupPosition(), order.quantity(), map, obstacles);
+                
             bool canDirect = (requiredFromCurrent >= 0 && robot.battery().level() >= requiredFromCurrent);
 
             int effectiveDist = -1;
             bool viaCharge = false;
+            bool chargeBeforeShelf = false;
 
             if (canDirect) {
-                effectiveDist = static_cast<int>(pathDirect.size()) - 1;
+                effectiveDist = dist;
             } else {
                 auto pathToCharge = Pathfinding::findPath(robot.position(), map.chargingPosition(), map, obstacles);
                 if (!pathToCharge.empty()) {
-                    int stepsToCharge = static_cast<int>(pathToCharge.size()) - 1;
-                    int energyToReachCharge = stepsToCharge * robot.moveCost();
-                    if (robot.battery().level() >= energyToReachCharge) {
-                        int requiredFromCharge = calculateRequiredEnergy(
+                    int stepsToCharge = pathToCharge.size() - 1;
+                    int energyToCharge = stepsToCharge * 1;
+                    if (robot.battery().level() >= energyToCharge) {
+                        int reqFromCharge = calculateRequiredEnergy(
                             map.chargingPosition(), order.shelfPosition(),
                             map.pickupPosition(), order.quantity(), map, obstacles);
-                        if (requiredFromCharge >= 0 && robot.battery().maxLevel() >= requiredFromCharge) {
+                        if (reqFromCharge >= 0 && robot.battery().maxLevel() >= reqFromCharge) {
                             effectiveDist = 1000 + stepsToCharge;
                             viaCharge = true;
+                            chargeBeforeShelf = true;
+                        }
+                    }
+                }
+                if (effectiveDist < 0) {
+                    int energyToShelfAndLoad = dist * 1 + order.quantity();
+                    if (robot.battery().level() >= energyToShelfAndLoad) {
+                        Coordinate shelfNeighbor = pathDirect.back();
+                        auto pathShelfToCharge = Pathfinding::findPath(shelfNeighbor, map.chargingPosition(), map, obstacles);
+                        if (!pathShelfToCharge.empty()) {
+                            int stepsToChargeLoaded = pathShelfToCharge.size() - 1;
+                            int energyToChargeLoaded = stepsToChargeLoaded * (1 + order.quantity());
+                            int totalToCharge = energyToShelfAndLoad + energyToChargeLoaded;
+
+                            if (robot.battery().level() >= totalToCharge) {
+                                auto pathChargeToPickup = Pathfinding::findPath(map.chargingPosition(), map.pickupPosition(), map, obstacles);
+                                if (!pathChargeToPickup.empty()) {
+                                    int stepsChargeToPickup = pathChargeToPickup.size() - 1;
+                                    int reqFromCharge = stepsChargeToPickup * (1 + order.quantity()) + order.quantity() + 1;
+                                    if (robot.battery().maxLevel() >= reqFromCharge) {
+                                        effectiveDist = 2000 + dist;
+                                        viaCharge = true;
+                                        chargeBeforeShelf = false;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            if (effectiveDist < 0) {
-                journal.log(tick, "Charge",
-                    "Robot " + std::to_string(robot.id()) +
-                    " cannot complete order " + std::to_string(order.id()) +
-                    " (direct needs " + std::to_string(requiredFromCurrent) +
-                    ", has " + std::to_string(robot.battery().level()) +
-                    ", max " + std::to_string(robot.battery().maxLevel()) + ")");
-                continue;
-            }
-
-            if (effectiveDist < bestDist) {
+            if (effectiveDist >= 0 && effectiveDist < bestDist) {
                 bestDist = effectiveDist;
                 bestRobotId = robot.id();
                 bestViaCharge = viaCharge;
+                bestChargeBeforeShelf = chargeBeforeShelf;
             }
         }
 
@@ -202,21 +223,6 @@ void Dispatcher::executeTick(std::vector<Robot>& robots, std::vector<Order>& ord
             }
             return false;
         };
-
-  //      auto findPathToShelfLocal = [&](const Coordinate& start, const Coordinate& shelfPos, const std::vector<Coordinate>& obs) {
-  //          std::vector<Coordinate> best_path;
-  //          Direction dirs[] = {Direction::Up, Direction::Down, Direction::Left, Direction::Right};
-  //          for (auto d : dirs) {
-  //              Coordinate neighbor = shelfPos.step(d);
-  //              if (map.isValid(neighbor) && map.isPassable(neighbor)) {
- //                   auto p = Pathfinding::findPath(start, neighbor, map, obs);
-  //                  if (!p.empty() && (best_path.empty() || p.size() < best_path.size())) {
-  //                      best_path = p;
-  //                  }
-  //              }
-  //          }
- //           return best_path;
- //       };
 
         switch (task.phase) {
             case RobotTask::Phase::ToShelf:
@@ -354,11 +360,6 @@ void Dispatcher::executeTick(std::vector<Robot>& robots, std::vector<Order>& ord
                 break;
 
             case RobotTask::Phase::leaving: {
-                if (robot.position() != map.pickupPosition()) {
-                    task.phase = RobotTask::Phase::Idle;
-                    break;
-                }
-
                 Coordinate target = robot.position();
                 bool found = false;
                 Direction dirs[] = {Direction::Up, Direction::Down, Direction::Left, Direction::Right};
@@ -385,30 +386,40 @@ void Dispatcher::executeTick(std::vector<Robot>& robots, std::vector<Order>& ord
                         robot.moveTo(target);
                         journal.log(tick, "Move",
                             "Robot " + std::to_string(robot.id()) +
-                            " left pickup to " + std::to_string(target.x()) + "," + std::to_string(target.y()));
+                            " left current cell to " + std::to_string(target.x()) + "," + std::to_string(target.y()));
                         task.phase = RobotTask::Phase::Idle;
                     }
-                }
+                } 
+  //              else if (!robot.able2move()) {
+  //                  // Если нет энергии даже на шаг, идем на зарядку
+  //                  task.phase = RobotTask::Phase::ToCharge;
+  //                  task.resumePhase = RobotTask::Phase::Idle;
+  //                  std::vector<Coordinate> obstacles;
+ //                   for (const auto& r : robots) if (r.id() != robot.id()) obstacles.push_back(r.position());
+ //                   task.path = Pathfinding::findPath(robot.position(), map.chargingPosition(), map, obstacles);
+ //                   task.pathIndex = task.path.empty() ? 0 : 1;
+ //                   task.orderId = -1;
+ //                  journal.log(tick, "Charge",
+  //                      "Robot " + std::to_string(robot.id()) +
+  //                      " going to charge (cannot leave, no energy)");
+  //              }
                 break;
             }
 
             case RobotTask::Phase::ToCharge:
-                if (!tryMove()) {
+                if (task.pathIndex >= (int)task.path.size()) {
                     if (robot.position() == map.chargingPosition()) {
-                        robot.setCharging(true);
-                        journal.log(tick, "Charge",
-                            "Robot " + std::to_string(robot.id()) + " started charging");
-                    }
-                    task.phase = RobotTask::Phase::Idle;
-                } else {
-                    if (!robot.able2move()) {
+                        if (!robot.isCharging()) {
+                            robot.setCharging(true);
+                            journal.log(tick, "Charge", "Robot " + std::to_string(robot.id()) + " started charging");
+                        }
                     } else {
-                        tryMove();
+                        task.phase = RobotTask::Phase::Idle;
+                    }
+                } else {
+                    if (!tryMove()) {
                     }
                 }
-                break;
-
-            case RobotTask::Phase::Idle:
                 break;
         }
     }
@@ -453,19 +464,29 @@ void Dispatcher::executeTick(std::vector<Robot>& robots, std::vector<Order>& ord
                                 return best_path;
                             };
                             task.path = findPathToShelfLocal(robot.position(), task.shelfPos, obstacles);
-                            task.pathIndex = 0;
+                            task.pathIndex = task.path.empty() ? 0 : 1;
                         } else if (task.phase == RobotTask::Phase::ToPickup || task.phase == RobotTask::Phase::Unloading) {
                             task.path = Pathfinding::findPath(robot.position(), map.pickupPosition(), map, obstacles);
-                            task.pathIndex = 0;
+                            task.pathIndex = task.path.empty() ? 0 : 1;
                         } else {
                             task.phase = RobotTask::Phase::Idle;
                         }
                         journal.log(tick, "Charge", "Robot " + std::to_string(robot.id()) + " resuming task after charging");
                     } else {
-                        task.phase = RobotTask::Phase::Idle;
+                        task.phase = RobotTask::Phase::leaving;task.orderId = -1;
+                        journal.log(tick, "Charge", "Robot " + std::to_string(robot.id()) + " leaving charging station");
                     }
+                } else {
+                    // Если задачи вообще нет (робот просто стоял на зарядке), создадим её для выезда
+                    RobotTask task;
+                    task.robotId = robot.id();
+                    task.orderId = -1;
+                    task.phase = RobotTask::Phase::leaving;
+                    tasks_[robot.id()] = task;
                 }
             }
+                
+            
         }
      }
     
@@ -500,6 +521,7 @@ void Dispatcher::sendToCharge(std::vector<Robot>& robots, const WarehouseMap& ma
             }
         }
     }
+    
 }
 
 void Dispatcher::assignTask(int robotId, int orderId, Coordinate shelfPos, int quantity, 
@@ -538,6 +560,7 @@ void Dispatcher::assignTask(int robotId, int orderId, Coordinate shelfPos, int q
 }
 
 }
+
 
 
 

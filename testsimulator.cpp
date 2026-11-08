@@ -19,6 +19,7 @@ TEST(SimulatorTest, TickAndStats) {
 
 TEST(SimulatorTest, SaveLoadLog) {
     WarehouseMap map(5, 5);
+    map.setCell({2, 2}, Cell(CellType::Shelf, 10)); 
     Simulator sim(std::move(map), {});
     sim.createOrder({2, 2}, 5);
     sim.saveLog("sim_log.txt");
