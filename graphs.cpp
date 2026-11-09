@@ -130,13 +130,19 @@ void ChartGenerator::showAllCharts(const std::vector<TickStats>& stats) {
             f << "\n";
         }
     }
+    
+    std::vector<std::string> colors = {
+        "red", "blue", "green", "orange", "purple", 
+        "cyan", "magenta", "brown", "dark-green", "navy"
+    };
 
 
     std::ostringstream plotRobots;
     for (int r = 0; r < robotCount; ++r) {
         if (r > 0) plotRobots << ", ";
         plotRobots << "'" << dataFile << "' using 1:" << (r + 4)
-                   << " with lines lc rgb 'black' title 'Robot " << (r + 1) << "'";
+                   << " with lines lc rgb '" << colors[r % colors.size()] << "'"
+                   << " title 'Robot " << (r + 1) << "'";
     }
 
     std::string scriptFile = "tmp_chart.gp";
@@ -163,6 +169,7 @@ void ChartGenerator::showAllCharts(const std::vector<TickStats>& stats) {
         f << "set xlabel 'Tick'\n";
         f << "set ylabel 'Charge'\n";
         f << "set grid\n";
+        f << "set key outside right top\n";
         f << "plot " << plotRobots.str() << "\n";
     }
 
