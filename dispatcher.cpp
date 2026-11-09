@@ -390,19 +390,6 @@ void Dispatcher::executeTick(std::vector<Robot>& robots, std::vector<Order>& ord
                         task.phase = RobotTask::Phase::Idle;
                     }
                 } 
-  //              else if (!robot.able2move()) {
-  //                  // Если нет энергии даже на шаг, идем на зарядку
-  //                  task.phase = RobotTask::Phase::ToCharge;
-  //                  task.resumePhase = RobotTask::Phase::Idle;
-  //                  std::vector<Coordinate> obstacles;
- //                   for (const auto& r : robots) if (r.id() != robot.id()) obstacles.push_back(r.position());
- //                   task.path = Pathfinding::findPath(robot.position(), map.chargingPosition(), map, obstacles);
- //                   task.pathIndex = task.path.empty() ? 0 : 1;
- //                   task.orderId = -1;
- //                  journal.log(tick, "Charge",
-  //                      "Robot " + std::to_string(robot.id()) +
-  //                      " going to charge (cannot leave, no energy)");
-  //              }
                 break;
             }
 
@@ -477,7 +464,6 @@ void Dispatcher::executeTick(std::vector<Robot>& robots, std::vector<Order>& ord
                         journal.log(tick, "Charge", "Robot " + std::to_string(robot.id()) + " leaving charging station");
                     }
                 } else {
-                    // Если задачи вообще нет (робот просто стоял на зарядке), создадим её для выезда
                     RobotTask task;
                     task.robotId = robot.id();
                     task.orderId = -1;
